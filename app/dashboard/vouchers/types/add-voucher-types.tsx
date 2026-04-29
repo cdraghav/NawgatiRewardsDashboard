@@ -1,6 +1,6 @@
 export interface UsageInstructions {
-  ONLINE?: string[];
-  OFFLINE?: string[];
+  ONLINE: string[];
+  OFFLINE: string[];
 }
 
 export interface VoucherFormData {
@@ -12,13 +12,15 @@ export interface VoucherFormData {
   maxAmount: number;
   discountPercentage: number;
   voucherExpiryMonths: number;
-  termsAndConditions: string;
+  termsAndConditions: string[];
   usageInstructions: UsageInstructions;
   logoFile: File | null;
   coverFile: File | null;
   brandColor: string;
   categoryIds: number[];
   status: string ;
+  denominations?: number[];
+  redemptionTypes?: string[];
 }
 
 export interface Step {
