@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const publicRoutes = ["/", "/login", "/signup"];
 const authRoutes = ["/login", "/signup"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const sessionCookie = Object.keys(Object.fromEntries(request.cookies)).find(
