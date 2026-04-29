@@ -53,20 +53,33 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     }
 
     try {
-      const { error } = await authClient.signIn.email(
+      console.log("[login] submitting", { email, baseURL: process.env.NEXT_PUBLIC_API_URL });
+      const result = await authClient.signIn.email(
         {
           email,
           password,
         },
         {
-          onSuccess: () => {
+          onRequest: (ctx) => {
+            console.log("[login] onRequest", ctx);
+          },
+          onResponse: (ctx) => {
+            console.log("[login] onResponse status:", ctx.response.status);
+            console.log("[login] response headers:", Object.fromEntries(ctx.response.headers.entries()));
+            console.log("[login] document.cookie after response:", document.cookie);
+          },
+          onSuccess: (ctx) => {
+            console.log("[login] onSuccess", ctx.data);
+            console.log("[login] document.cookie:", document.cookie);
             setIsLoading(false);
             toast.success("Login successful", {
               description: "Redirecting to dashboard...",
             });
+            console.log("[login] router.push -> /dashboard");
             router.push("/dashboard");
           },
           onError: (ctx) => {
+            console.error("[login] onError", ctx.error);
             setIsLoading(false);
             const errorMessage = ctx.error.message || "Login failed";
             setError(errorMessage);
@@ -76,8 +89,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
           },
         }
       );
+      console.log("[login] result", result);
+      const { error } = result;
 
       if (error) {
+        console.error("[login] result.error", error);
         setIsLoading(false);
         setError(error.message || "Login failed");
         toast.error("Login error", {
@@ -85,6 +101,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
         });
       }
     } catch (err) {
+      console.error("[login] thrown", err);
       setIsLoading(false);
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
