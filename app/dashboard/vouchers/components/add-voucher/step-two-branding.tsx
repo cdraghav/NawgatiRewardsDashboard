@@ -71,7 +71,6 @@ export function StepTwoBranding({
           "Supported formats: SVG, PNG, WebP",
           "Minimum resolution: 1920×1080 pixels",
         ]}
-        onColorDetected={(color) => setValue("brandColor", color)}
         onChange={handleCoverChange}
         onRemove={removeCover}
       />

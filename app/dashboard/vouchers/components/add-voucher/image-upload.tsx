@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import api from "@/lib/axios";
 
 interface ImageUploadProps {
   id: string;
@@ -14,7 +13,6 @@ interface ImageUploadProps {
   guidelines?: string[];
   aspectRatio?: "square" | "wide";
   requireTransparency?: boolean;
-  onColorDetected?: (color: string) => void; 
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: () => void;
 }
@@ -66,31 +64,6 @@ const checkImageTransparency = (file: File): Promise<boolean> => {
   });
 };
 
-const detectColorFromImage = async (file: File): Promise<string | null> => {
-  try {
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const response = await api.post('/api/utils/detect-color', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data.data.dominantColor;
-  } catch (err: any) {
-    console.error('Error detecting color:', err);
-    if (err.response?.status === 400) {
-      const errorMessage = err.response?.data?.message || '';
-      if (errorMessage.includes('Invalid') || errorMessage.includes('only') || errorMessage.includes('SVG')) {
-        throw new Error('Invalid file type. Images can only be SVG or PNG.');
-      }
-    }
-    
-    return null;
-  }
-};
-
 export function ImageUpload({
   id,
   label,
@@ -100,44 +73,14 @@ export function ImageUpload({
   guidelines,
   aspectRatio = "square",
   requireTransparency = false,
-  onColorDetected,
   onChange,
   onRemove,
 }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [isDetectingColor, setIsDetectingColor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dimensions = aspectRatio === "square" ? "w-48 h-48" : "w-full h-80";
-
-  const clearImage = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    onRemove();
-  };
-
-  const handleColorDetection = async (file: File) => {
-    if (!id.includes("cover") || !onColorDetected) return;
-
-    setIsDetectingColor(true);
-    try {
-      const dominantColor = await detectColorFromImage(file);
-      setIsDetectingColor(false);
-
-      if (dominantColor) {
-        onColorDetected(dominantColor);
-        toast.success("Color detected", {
-          description: `Suggested color: ${dominantColor}`,
-        });
-      }
-    } catch (err: any) {
-      setIsDetectingColor(false);
-      clearImage();
-      toast.error(err.message || "Invalid file type. Images can only be SVG or PNG.");
-    }
-  };
 
   const handleFileValidation = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,9 +109,6 @@ export function ImageUpload({
     }
 
     onChange(e)
-    if (id.includes("cover")) {
-      await handleColorDetection(file);
-    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -212,9 +152,6 @@ export function ImageUpload({
       dataTransfer.items.add(file);
       fileInputRef.current.files = dataTransfer.files;
       onChange({ target: fileInputRef.current } as any)
-      if (id.includes("cover")) {
-        await handleColorDetection(file);
-      }
     }
   };
 
@@ -246,9 +183,7 @@ export function ImageUpload({
           <div
             className={`relative ${dimensions} rounded-xl border-2 border-dashed border-primary overflow-hidden ${
               aspectRatio === "square" ? "bg-white" : "bg-muted/10"
-            } group shadow-lg ${aspectRatio === "square" ? "flex-shrink-0" : ""} ${
-              isDetectingColor ? "opacity-50" : ""
-            }`}
+            } group shadow-lg ${aspectRatio === "square" ? "flex-shrink-0" : ""}`}
           >
             <div className="relative w-full h-full pointer-events-none">
               <Image
@@ -258,20 +193,12 @@ export function ImageUpload({
                 className={aspectRatio === "square" ? "object-contain p-4" : "object-cover"}
               />
             </div>
-            {isDetectingColor && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <div className="animate-spin">
-                  <Loader2 className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            )}
             <button
               type="button"
               onClick={handleRemoveClick}
-              disabled={isDetectingColor}
               className={`absolute ${
                 aspectRatio === "square" ? "top-3 right-3" : "top-4 right-4"
-              } p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 shadow-lg transition-all z-50 pointer-events-auto disabled:opacity-50`}
+              } p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 shadow-lg transition-all z-50 pointer-events-auto`}
               style={{ pointerEvents: 'auto' }}
             >
               <X className="h-5 w-5" />
@@ -287,20 +214,20 @@ export function ImageUpload({
             className={`${dimensions} rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
               aspectRatio === "square" ? "flex-shrink-0" : ""
             } ${isDragging ? "border-primary bg-primary/10" : "border-muted hover:border-primary hover:bg-primary/5"} ${
-              isChecking || isDetectingColor ? "opacity-50 cursor-wait" : ""
+              isChecking ? "opacity-50 cursor-wait" : ""
             }`}
           >
-            <Upload 
+            <Upload
               className={`${aspectRatio === "square" ? "h-12 w-12" : "h-14 w-14"} ${
                 aspectRatio === "square" ? "mb-3" : "mb-4"
               } ${isDragging ? "text-primary" : "text-muted-foreground"} transition-all ${
-                isChecking || isDetectingColor ? "animate-pulse" : ""
+                isChecking ? "animate-pulse" : ""
               }`}
             />
             <span className={`${aspectRatio === "square" ? "text-sm" : "text-base"} ${
               aspectRatio === "square" ? "font-medium" : "font-semibold"
             } ${isDragging ? "text-primary" : "text-muted-foreground"} text-center px-4 transition-all`}>
-              {isChecking ? "Validating image..." : isDetectingColor ? "Detecting color..." : isDragging ? "Drop image here" : `Click to Upload ${label}`}
+              {isChecking ? "Validating image..." : isDragging ? "Drop image here" : `Click to Upload ${label}`}
             </span>
             {aspectRatio === "wide" && (
               <span className={`text-sm ${isDragging ? "text-primary" : "text-muted-foreground"} mt-2 transition-all`}>
@@ -314,7 +241,7 @@ export function ImageUpload({
               accept="image/png,image/svg+xml"
               className="hidden" 
               onChange={handleFileValidation}
-              disabled={isChecking || isDetectingColor}
+              disabled={isChecking}
             />
           </label>
         )}

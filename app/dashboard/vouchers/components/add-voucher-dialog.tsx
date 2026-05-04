@@ -64,7 +64,17 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
 
   useEffect(() => {
     if (open && voucher) {
-      const usageInstructions = voucher.usageInstructions || { ONLINE: [], OFFLINE: [] };
+      const usageInstructions: { ONLINE: string[]; OFFLINE: string[] } = { ONLINE: [], OFFLINE: [] };
+      if (Array.isArray(voucher.howToUseInstructions)) {
+        for (const group of voucher.howToUseInstructions) {
+          const mode = group?.retailMode === "OFFLINE" ? "OFFLINE" : "ONLINE";
+          const lines = Array.isArray(group?.instructions) ? group.instructions : [];
+          usageInstructions[mode].push(...lines);
+        }
+      } else if (voucher.usageInstructions) {
+        usageInstructions.ONLINE = voucher.usageInstructions.ONLINE || [];
+        usageInstructions.OFFLINE = voucher.usageInstructions.OFFLINE || [];
+      }
       const denominations = voucher.amountRestrictions?.denominations || voucher.denominations || [];
       
       reset({

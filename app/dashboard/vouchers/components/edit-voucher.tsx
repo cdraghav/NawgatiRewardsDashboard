@@ -316,7 +316,6 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
                   "Supported formats: SVG, PNG, WebP",
                   "Minimum resolution: 1920×1080 pixels",
                 ]}
-                onColorDetected={(color) => setValue("colorcode", color)}
                 onChange={handleCoverChange}
                 onRemove={removeCover}
               />
