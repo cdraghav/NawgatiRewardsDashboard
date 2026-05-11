@@ -39,6 +39,7 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
   const [currentStep, setCurrentStep] = useState(1);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [useExistingLogo, setUseExistingLogo] = useState(true);
   const queryClient = useQueryClient();
 
@@ -56,6 +57,7 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
       brandColor: "#000000",
       logoFile: null,
       coverFile: null,
+      bannerFile: null,
       categoryIds: [],
     },
   });
@@ -93,11 +95,13 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
         brandColor: "#000000",
         logoFile: null,
         coverFile: null,
+        bannerFile: null,
         categoryIds: [],
         denominations: denominations,
       });
       setLogoPreview(voucher.logoUrl || null);
       setCoverPreview(null);
+      setBannerPreview(null);
       setUseExistingLogo(true);
       setCurrentStep(1);
     }
@@ -240,6 +244,10 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
         formDataToSend.append("cover", data.coverFile);
       }
 
+      if (data.bannerFile) {
+        formDataToSend.append("banner", data.bannerFile);
+      }
+
       const response = await api.post("/api/voucher", formDataToSend, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -282,6 +290,18 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
     }
   };
 
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setValue("bannerFile", file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const removeLogo = () => {
     setValue("logoFile", null);
     setLogoPreview(null);
@@ -294,6 +314,13 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
     setValue("coverFile", null);
     setCoverPreview(null);
     const input = document.getElementById("cover-upload") as HTMLInputElement;
+    if (input) input.value = "";
+  };
+
+  const removeBanner = () => {
+    setValue("bannerFile", null);
+    setBannerPreview(null);
+    const input = document.getElementById("banner-upload") as HTMLInputElement;
     if (input) input.value = "";
   };
 
@@ -310,7 +337,12 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
   };
 
   const canProceedFromStep2 = () => {
-    return (logoPreview !== null) && (coverPreview !== null) && (formData.brandColor !== "");
+    return (
+      logoPreview !== null &&
+      coverPreview !== null &&
+      bannerPreview !== null &&
+      formData.brandColor !== ""
+    );
   };
 
   const canProceedFromStep3 = formData.categoryIds && formData.categoryIds.length > 0;
@@ -324,7 +356,8 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
     }
     if (currentStep === 2 && !canProceedFromStep2()) {
       toast.warning("Complete branding requirements", {
-        description: "Please upload both logo and cover image, and select a brand color.",
+        description:
+          "Please upload the logo, cover image, and banner image, and select a brand color.",
       });
       return;
     }
@@ -374,13 +407,16 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
                 <StepTwoBranding
                   logoPreview={logoPreview}
                   coverPreview={coverPreview}
+                  bannerPreview={bannerPreview}
                   brandColor={formData.brandColor}
                   register={register}
                   setValue={setValue}
                   handleLogoChange={handleLogoChange}
                   handleCoverChange={handleCoverChange}
+                  handleBannerChange={handleBannerChange}
                   removeLogo={removeLogo}
                   removeCover={removeCover}
+                  removeBanner={removeBanner}
                 />
               )}
 
@@ -396,6 +432,7 @@ export function AddVoucherDialog({ voucher, open, onOpenChange }: AddVoucherDial
                   formData={formData}
                   logoPreview={logoPreview}
                   coverPreview={coverPreview}
+                  bannerPreview={bannerPreview}
                   voucher={voucher}
                 />
               )}

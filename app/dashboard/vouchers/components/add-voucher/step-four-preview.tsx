@@ -11,6 +11,7 @@ interface StepFourPreviewProps {
   formData: VoucherFormData;
   logoPreview: string | null;
   coverPreview: string | null;
+  bannerPreview: string | null;
   voucher?: any;
 }
 
@@ -23,6 +24,7 @@ export function StepFourPreview({
   formData,
   logoPreview,
   coverPreview,
+  bannerPreview,
   voucher,
 }: StepFourPreviewProps) {
   const { data: categories } = useQuery<Category[]>({
@@ -54,7 +56,8 @@ export function StepFourPreview({
           brandName={formData.brandName}
           brandColor={formData.brandColor || "#ff5252"}
           logoUrl={logoPreview}
-          thumbnailUrl={coverPreview}
+          coverUrl={coverPreview}
+          bannerUrl={bannerPreview}
           discountPercentage={Number(formData.discountPercentage) || 0}
           redemptionTypes={redemptionTypes}
           defaultAmount={defaultAmount}

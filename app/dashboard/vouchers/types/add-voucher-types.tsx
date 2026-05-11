@@ -16,6 +16,7 @@ export interface VoucherFormData {
   usageInstructions: UsageInstructions;
   logoFile: File | null;
   coverFile: File | null;
+  bannerFile: File | null;
   brandColor: string;
   categoryIds: number[];
   status: string ;

@@ -8,7 +8,8 @@ interface FlutterVoucherCardPreviewProps {
   brandName: string;
   brandColor: string;
   logoUrl: string | null;
-  thumbnailUrl: string | null;
+  coverUrl: string | null;
+  bannerUrl: string | null;
   discountPercentage: number;
   redemptionTypes: string[];
   defaultAmount: number;
@@ -20,7 +21,8 @@ export function FlutterVoucherCardPreview({
   brandName,
   brandColor,
   logoUrl,
-  thumbnailUrl,
+  coverUrl,
+  bannerUrl,
   discountPercentage,
   redemptionTypes,
   defaultAmount,
@@ -36,73 +38,82 @@ export function FlutterVoucherCardPreview({
         {/* Voucher body — colored frame, edge-to-edge of card */}
         <div
           style={{
-            borderRadius: 8,
+            position: "relative",
+            borderRadius: 16,
             overflow: "hidden",
             background: brandColor,
           }}
         >
-          {/* Upper section (logo) — internal 1:5:1 (padding 1/7 each side) → logo fills 5/7 × 290 ≈ 207px */}
-          <div style={{ width: "100%", background: brandColor }}>
+          {/* Pattern overlay — multiplied against brand color so both show */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: "url(/voucher_pattern.png)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              mixBlendMode: "multiply",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          />
+
+          {/* Upper section (logo) — Figma spec: aspect 1.5:1 (width:height) */}
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              width: "100%",
+              aspectRatio: "1.5 / 1",
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "19% 32%",
+              boxSizing: "border-box",
+            }}
+          >
             {logoUrl ? (
-              <div
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={logoUrl}
+                alt={brandName}
                 style={{
-                  paddingInline: "calc(100% / 7)",
-                  paddingTop: 28,
-                  paddingBottom: 18,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
                 }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={logoUrl}
-                  alt={brandName}
-                  style={{
-                    width: "100%",
-                    maxHeight: 80,
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-            ) : (
-              <div style={{ height: 120 }} />
-            )}
+              />
+            ) : null}
           </div>
 
           {/* Dotted divider */}
-          <DottedDivider bgColor={brandColor} />
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <DottedDivider bgColor={brandColor} />
+          </div>
 
-          {/* Thumbnail — internal 1:7:1 (padding 1/9 each side) → image fills 7/9 × 290 ≈ 226px */}
-          {thumbnailUrl ? (
+          {/* Feature image — Figma spec: aspect 1.7:1, full-bleed (no internal padding) */}
+          {coverUrl ? (
             <div
               style={{
+                position: "relative",
+                zIndex: 1,
                 width: "100%",
-                background: brandColor,
-                paddingInline: "calc(100% / 9)",
-                paddingTop: 6,
-                paddingBottom: 10,
-                boxSizing: "border-box",
+                aspectRatio: "1.7 / 1",
+                overflow: "hidden",
               }}
             >
-              <div
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverUrl}
+                alt=""
                 style={{
                   width: "100%",
-                  aspectRatio: "16 / 9",
-                  position: "relative",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
                 }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={thumbnailUrl}
-                  alt=""
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              </div>
+              />
             </div>
           ) : null}
         </div>
@@ -112,8 +123,8 @@ export function FlutterVoucherCardPreview({
           <div
             style={{
               position: "absolute",
-              top: -8,
-              left: 8,
+              top: -10,
+              left: 20,
               zIndex: 30,
               display: "flex",
               flexDirection: "row",
@@ -122,31 +133,31 @@ export function FlutterVoucherCardPreview({
           >
             <div
               style={{
-                boxShadow: "-1px 3px 5px rgba(0,0,0,0.24)",
+                boxShadow: "-1.954px 5.863px 7.817px rgba(0,0,0,0.24)",
                 borderRadius: "0 0 8px 8px",
               }}
             >
               <div
                 style={{
-                  padding: 2.5,
-                  background: "#36A4FF",
+                  padding: 3,
+                  background: "linear-gradient(to bottom, #6dbdff, #1093ff)",
                   borderRadius: "0 0 8px 8px",
                 }}
               >
                 {/* Dashed-border layer (left/right/bottom only) */}
                 <div
                   style={{
-                    padding: "0 2.5px 2.5px 2.5px",
-                    borderLeft: "1.5px dashed rgba(40,40,40,0.5)",
-                    borderRight: "1.5px dashed rgba(40,40,40,0.5)",
-                    borderBottom: "1.5px dashed rgba(40,40,40,0.5)",
+                    padding: "0 3px 3px 3px",
+                    borderLeft: "1.5px dashed rgba(255,255,255,0.6)",
+                    borderRight: "1.5px dashed rgba(255,255,255,0.6)",
+                    borderBottom: "1.5px dashed rgba(255,255,255,0.6)",
                     borderRadius: "0 0 8px 8px",
                   }}
                 >
                   <div
                     style={{
                       paddingTop: 12,
-                      background: "#36A4FF",
+                      background: "linear-gradient(to bottom, #6dbdff, #1093ff)",
                       borderRadius: "0 0 8px 8px",
                     }}
                   >
@@ -158,7 +169,7 @@ export function FlutterVoucherCardPreview({
                         flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#142E57",
+                        color: "#ffffff",
                         fontWeight: 900,
                         lineHeight: 1,
                         textAlign: "center",
@@ -174,9 +185,9 @@ export function FlutterVoucherCardPreview({
             {/* Triangle banner accent */}
             <div
               style={{
-                width: 8,
-                height: 8,
-                background: "#36A4FF",
+                width: 9,
+                height: 10,
+                background: "#1093ff",
                 clipPath: "polygon(0 0, 100% 100%, 0 100%)",
               }}
             />
@@ -190,7 +201,7 @@ export function FlutterVoucherCardPreview({
               position: "absolute",
               top: 12,
               right: 12,
-              zIndex: 20,
+              zIndex: 25,
               display: "flex",
               flexDirection: "column",
               alignItems: "flex-end",
@@ -278,6 +289,48 @@ export function FlutterVoucherCardPreview({
           </div>
         </div>
       </div>
+
+      {/* Banner — horizontal black card with image centered at its natural size */}
+      {bannerUrl ? (
+        <div style={{ marginTop: 24 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#6E7781",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              marginBottom: 6,
+            }}
+          >
+            Banner (detail view)
+          </div>
+          <div
+            style={{
+              width: "100%",
+              aspectRatio: "16 / 9",
+              borderRadius: 8,
+              overflow: "hidden",
+              background: "#000000",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 12,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={bannerUrl}
+              alt="Banner"
+              style={{
+                display: "block",
+                maxWidth: "100%",
+                maxHeight: "100%",
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

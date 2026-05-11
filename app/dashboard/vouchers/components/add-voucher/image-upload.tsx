@@ -1,3 +1,5 @@
+"use client";
+
 import { useRef, useState } from "react";
 import { Upload, X } from "lucide-react";
 import Image from "next/image";
@@ -178,26 +180,26 @@ export function ImageUpload({
           <span className="text-blue-500 text-sm font-normal ml-2">(Transparent background required)</span>
         )}
       </Label>
-      <div className={`flex ${aspectRatio === "square" ? "flex-col md:flex-row" : "flex-col"} items-start gap-8`}>
+      <div className={`flex ${aspectRatio !== "wide" ? "flex-col md:flex-row" : "flex-col"} items-start gap-8`}>
         {preview ? (
           <div
             className={`relative ${dimensions} rounded-xl border-2 border-dashed border-primary overflow-hidden ${
-              aspectRatio === "square" ? "bg-white" : "bg-muted/10"
-            } group shadow-lg ${aspectRatio === "square" ? "flex-shrink-0" : ""}`}
+              aspectRatio !== "wide" ? "bg-white" : "bg-muted/10"
+            } group shadow-lg ${aspectRatio !== "wide" ? "flex-shrink-0" : ""}`}
           >
             <div className="relative w-full h-full pointer-events-none">
               <Image
                 src={preview}
                 alt={`${label} preview`}
                 fill
-                className={aspectRatio === "square" ? "object-contain p-4" : "object-cover"}
+                className={aspectRatio !== "wide" ? "object-contain p-4" : "object-cover"}
               />
             </div>
             <button
               type="button"
               onClick={handleRemoveClick}
               className={`absolute ${
-                aspectRatio === "square" ? "top-3 right-3" : "top-4 right-4"
+                aspectRatio !== "wide" ? "top-3 right-3" : "top-4 right-4"
               } p-2 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90 shadow-lg transition-all z-50 pointer-events-auto`}
               style={{ pointerEvents: 'auto' }}
             >
@@ -212,7 +214,7 @@ export function ImageUpload({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`${dimensions} rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
-              aspectRatio === "square" ? "flex-shrink-0" : ""
+              aspectRatio !== "wide" ? "flex-shrink-0" : ""
             } ${isDragging ? "border-primary bg-primary/10" : "border-muted hover:border-primary hover:bg-primary/5"} ${
               isChecking ? "opacity-50 cursor-wait" : ""
             }`}
@@ -229,23 +231,23 @@ export function ImageUpload({
             } ${isDragging ? "text-primary" : "text-muted-foreground"} text-center px-4 transition-all`}>
               {isChecking ? "Validating image..." : isDragging ? "Drop image here" : `Click to Upload ${label}`}
             </span>
-            {aspectRatio === "wide" && (
+            {aspectRatio !== "square" && (
               <span className={`text-sm ${isDragging ? "text-primary" : "text-muted-foreground"} mt-2 transition-all`}>
                 Supported: SVG, PNG • Max 5MB
               </span>
             )}
-            <input 
+            <input
               ref={fileInputRef}
-              id={id} 
-              type="file" 
+              id={id}
+              type="file"
               accept="image/png,image/svg+xml"
-              className="hidden" 
+              className="hidden"
               onChange={handleFileValidation}
               disabled={isChecking}
             />
           </label>
         )}
-        {guidelines && aspectRatio === "square" && (
+        {guidelines && aspectRatio !== "wide" && (
           <div className="flex-1 space-y-2 text-base text-muted-foreground">
             <p className="font-semibold text-foreground mb-3">{label} Guidelines:</p>
             {guidelines.map((guideline, index) => (

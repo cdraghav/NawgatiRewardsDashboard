@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { ImageUpload } from "./add-voucher/image-upload";
 import { ColorPicker } from "./add-voucher/color-picker";
+import { FlutterVoucherCardPreview } from "./add-voucher/flutter-voucher-card-preview";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ interface EditFormData {
   colorcode: string;
   logoFile: File | null;
   coverFile: File | null;
+  bannerFile: File | null;
   categoryIds: number[];
 }
 
@@ -43,8 +45,10 @@ async function fetchCategories() {
 export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDialogProps) {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [hasNewLogo, setHasNewLogo] = useState(false);
   const [hasNewCover, setHasNewCover] = useState(false);
+  const [hasNewBanner, setHasNewBanner] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [initialData, setInitialData] = useState<any>(null);
   const queryClient = useQueryClient();
@@ -60,6 +64,7 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
       colorcode: "#000000",
       logoFile: null,
       coverFile: null,
+      bannerFile: null,
       categoryIds: [],
     },
   });
@@ -73,16 +78,19 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
         colorcode: voucher.color_code || "#000000",
         logoFile: null,
         coverFile: null,
+        bannerFile: null,
         categoryIds: voucher.category_ids || [],
       };
-      
+
       setInitialData(initialFormData);
       reset(initialFormData);
       setLogoPreview(voucher.logo_url || null);
       setCoverPreview(voucher.cover_image_url || null);
+      setBannerPreview(voucher.banner_image_url || null);
       setSelectedCategories(voucher.category_ids || []);
       setHasNewLogo(false);
       setHasNewCover(false);
+      setHasNewBanner(false);
     }
   }, [open, voucher, reset]);
 
@@ -110,6 +118,13 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
       } else if (!hasNewCover && coverPreview === initialData?.coverPreview) {
       } else if (coverPreview && !hasNewCover) {
         formDataToSend.append("coverurl", coverPreview);
+      }
+
+      if (hasNewBanner && data.bannerFile) {
+        formDataToSend.append("banner", data.bannerFile);
+      } else if (!hasNewBanner && bannerPreview === initialData?.bannerPreview) {
+      } else if (bannerPreview && !hasNewBanner) {
+        formDataToSend.append("bannerurl", bannerPreview);
       }
 
       const categoriesChanged =
@@ -179,6 +194,19 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
     }
   };
 
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setValue("bannerFile", file);
+      setHasNewBanner(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const removeLogo = () => {
     setValue("logoFile", null);
     setLogoPreview(null);
@@ -192,6 +220,14 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
     setCoverPreview(null);
     setHasNewCover(false);
     const input = document.getElementById("edit-cover-upload") as HTMLInputElement;
+    if (input) input.value = "";
+  };
+
+  const removeBanner = () => {
+    setValue("bannerFile", null);
+    setBannerPreview(null);
+    setHasNewBanner(false);
+    const input = document.getElementById("edit-banner-upload") as HTMLInputElement;
     if (input) input.value = "";
   };
 
@@ -213,6 +249,10 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
       toast.error("Cover image is required");
       return;
     }
+    if (!bannerPreview) {
+      toast.error("Banner image is required");
+      return;
+    }
     if (data.discountpercentage <= 0) {
       toast.error("Discount percentage must be greater than 0");
       return;
@@ -231,6 +271,7 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
   const allFieldsFilled =
     logoPreview !== null &&
     coverPreview !== null &&
+    bannerPreview !== null &&
     formData.colorcode !== "" &&
     formData.discountpercentage > 0 &&
     selectedCategories.length > 0;
@@ -241,23 +282,24 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
         <DialogHeader className="px-8 pt-8 pb-6 border-b shrink-0">
           <DialogTitle className="text-2xl font-bold">Edit Voucher</DialogTitle>
           <DialogDescription className="text-base">
-            Update discount, brand color, logo, cover image, and categories for{" "}
+            Update discount, brand color, logo, cover image, banner image, and categories for{" "}
             <span className="font-medium">{voucher?.brand_name}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full w-full">
-            <form onSubmit={handleSubmit(onSubmit)} className="px-8 py-6 space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 px-8 py-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
               {!allFieldsFilled && (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-amber-900 text-sm">Required Fields</h4>
                     <p className="text-sm text-amber-800 mt-1">
-                      All fields are required. Please ensure discount percentage is set, both logo and
-                      cover image are uploaded, brand color is selected, and at least one category is
-                      chosen.
+                      All fields are required. Please ensure discount percentage is set; logo,
+                      cover image, and banner image are uploaded; brand color is selected; and
+                      at least one category is chosen.
                     </p>
                   </div>
                 </div>
@@ -318,6 +360,23 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
                 ]}
                 onChange={handleCoverChange}
                 onRemove={removeCover}
+              />
+
+              <ImageUpload
+                id="edit-banner-upload"
+                label="Banner Image"
+                preview={bannerPreview}
+                required
+                aspectRatio="wide"
+                guidelines={[
+                  "Horizontal full-bleed banner — rendered edge-to-edge in the app (no padding)",
+                  "Wide aspect ratio recommended (16:9 or 2:1)",
+                  "Maximum file size: 5MB",
+                  "Supported formats: SVG, PNG",
+                  "Minimum resolution: 1920×1080 pixels",
+                ]}
+                onChange={handleBannerChange}
+                onRemove={removeBanner}
               />
 
               <ColorPicker
@@ -407,6 +466,33 @@ export function EditVoucherDialog({ voucher, open, onOpenChange }: EditVoucherDi
                 )}
               </div>
             </form>
+
+              <aside className="hidden lg:block">
+                <div className="sticky top-0">
+                  <FlutterVoucherCardPreview
+                    brandName={voucher?.brand_name || ""}
+                    brandColor={formData.colorcode || "#ff5252"}
+                    logoUrl={logoPreview}
+                    coverUrl={coverPreview}
+                    bannerUrl={bannerPreview}
+                    discountPercentage={Number(formData.discountpercentage) || 0}
+                    redemptionTypes={
+                      Array.isArray(voucher?.redemption_types)
+                        ? voucher.redemption_types
+                        : typeof voucher?.redemption_types === "string"
+                        ? (voucher.redemption_types.match(/\{([^}]*)\}/)?.[1]?.split(",").filter(Boolean) ?? [])
+                        : []
+                    }
+                    defaultAmount={
+                      voucher?.denominations?.[0] ??
+                      voucher?.min_amount_p ??
+                      voucher?.max_amount_p ??
+                      500
+                    }
+                  />
+                </div>
+              </aside>
+            </div>
           </ScrollArea>
         </div>
 

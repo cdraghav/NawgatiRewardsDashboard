@@ -14,7 +14,9 @@ interface VoucherCardProps {
 
 export function VoucherCard({ voucher, onEdit, onDelete }: VoucherCardProps) {
   const [isHovered, setIsHovered] = useState(false)
-  
+
+  const bannerUrl = voucher.banner_image_url || voucher.bannerImageUrl || null
+
   let redemptionTypes: string[] = []
   if (Array.isArray(voucher.redemption_types)) {
     redemptionTypes = voucher.redemption_types
@@ -29,38 +31,54 @@ export function VoucherCard({ voucher, onEdit, onDelete }: VoucherCardProps) {
   const hasOffline = redemptionTypes.includes('offline')
 
   return (
-    <div 
-      className="relative w-[280px] mt-8"
+    <div className="w-[280px] mt-8">
+    <div
+      className="relative w-full"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {voucher.discount_percentage && (
-        <div className="absolute -top-3 left-3 z-20">
-          <div className="relative">
-            <div className="p-[3px] bg-[#36A4FF] rounded-br-2xl shadow-lg">
-              <div className="relative w-16 h-[68px] p-2 rounded-br-2xl border-2 border-t-0 border-slate-500 border-dashed flex flex-col items-center justify-center gap-1 bg-[#36A4FF]">
-                <div className="text-[20px] font-extrabold leading-none text-[#142E57]">
-                  {voucher.discount_percentage}%
-                </div>
-                <div className="w-6 h-[9px] flex items-center justify-center text-[#142E57] mt-0.5 text-[20px] font-extrabold leading-none tracking-normal">
-                  OFF
+        <div className="absolute -top-2.5 left-5 z-30 flex flex-row items-start">
+          <div
+            className="rounded-b-lg"
+            style={{ boxShadow: "-1.954px 5.863px 7.817px rgba(0,0,0,0.24)" }}
+          >
+            <div
+              className="p-[3px] rounded-b-lg"
+              style={{ background: "linear-gradient(to bottom, #6dbdff, #1093ff)" }}
+            >
+              <div
+                className="px-[3px] pb-[3px] rounded-b-lg"
+                style={{
+                  borderLeft: "1.5px dashed rgba(255,255,255,0.6)",
+                  borderRight: "1.5px dashed rgba(255,255,255,0.6)",
+                  borderBottom: "1.5px dashed rgba(255,255,255,0.6)",
+                }}
+              >
+                <div
+                  className="pt-3 rounded-b-lg"
+                  style={{ background: "linear-gradient(to bottom, #6dbdff, #1093ff)" }}
+                >
+                  <div className="w-11 h-10 flex flex-col items-center justify-center text-white font-black leading-none text-center">
+                    <div className="text-[18px]">{voucher.discount_percentage}%</div>
+                    <div className="text-[14px] mt-0.5">OFF</div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div 
-              className="absolute top-0 right-0 w-0 h-0 translate-x-full"
-              style={{ 
-                borderBottom: '12px solid #36A4FF',
-                borderRight: '12px solid transparent'
-              }}
-            />
           </div>
+          <div
+            className="w-[9px] h-[10px]"
+            style={{
+              background: "#1093ff",
+              clipPath: "polygon(0 0, 100% 100%, 0 100%)",
+            }}
+          />
         </div>
       )}
 
       {(hasOnline || hasOffline) && (
-        <div className="absolute top-2 right-2 z-20 flex gap-2.5">
+        <div className="absolute top-2 right-2 z-30 flex gap-2.5">
           {hasOffline && (
             <div className="w-16 h-5 rounded-sm p-2 flex items-center justify-center bg-gray-700/20 border border-white/30 backdrop-blur-sm">
               <span className="text-sm font-medium text-white leading-none">Offline</span>
@@ -75,17 +93,25 @@ export function VoucherCard({ voucher, onEdit, onDelete }: VoucherCardProps) {
       )}
 
       <div
-        className="relative rounded-b-3xl overflow-visible shadow-xl"
+        className="relative rounded-t-2xl overflow-hidden shadow-xl"
         style={{ backgroundColor: voucher.color_code || "#ff5252" }}
       >
-        <div 
-          className={`absolute top-0 left-0 right-0 rounded-b-3xl backdrop-blur-md z-30 flex items-center justify-center gap-3 transition-all duration-300 ease-in-out ${
+        {/* Pattern overlay — multiplied against brand color so both show */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            backgroundImage: "url(/voucher_pattern.png)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            mixBlendMode: "multiply",
+          }}
+        />
+
+        <div
+          className={`absolute inset-0 rounded-t-2xl backdrop-blur-md z-40 flex items-center justify-center gap-3 transition-all duration-300 ease-in-out ${
             isHovered ? 'opacity-100 visible' : 'opacity-0 invisible'
           }`}
-          style={{ 
-            height: '358px',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)'
-          }}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
         >
           <Button
             onClick={onEdit}
@@ -106,74 +132,65 @@ export function VoucherCard({ voucher, onEdit, onDelete }: VoucherCardProps) {
           </Button>
         </div>
 
-        <div className="relative h-[190px]">
-          <div className="absolute inset-0 flex items-center justify-center top-[65%] -translate-y-1/2">
-            {voucher.logo_url ? (
-              <div className="relative w-[180px] h-16 flex items-center justify-center">
-                <Image
-                  src={voucher.logo_url}
-                  alt={voucher.brand_name}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            ) : (
-              <h2 className="text-3xl font-black text-white">{voucher.brand_name}</h2>
-            )}
-          </div>
-        </div>
-
-        <div className="relative h-2 mx-6">
-          {/* <div className="absolute inset-x-0 top-0 bg-white justify-between items-center">
-            <svg width="100%" height="1" className="absolute inset-0">
-              <line 
-                x1="20" 
-                y1="0" 
-                x2="calc(100% - 20px)" 
-                y2="0" 
-                stroke="white" 
-                strokeWidth="1" 
-                strokeDasharray="6 4"
-                opacity="0.4"
-              />
-            </svg>
-          </div>
-           */}
-
-  <svg
-    className="absolute top-1/2 left-0 w-full h-0.5 -translate-y-1/2 opacity-50"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <line
-      x1="0"
-      y1="1"
-      x2="100%"
-      y2="1"
-      stroke="white"
-      strokeWidth="2"
-      strokeDasharray="10 6"  // <-- 10px dash, 6px gap
-    />
-  </svg>
-          <div className="absolute -left-6 top-1/2 w-3 h-5 -translate-y-1/2 rounded-r-full bg-white" />
-          
-          <div className="absolute -right-6 top-1/2 w-3 h-5 -translate-y-1/2 rounded-l-full bg-white" />
-        </div>
-
-        <div className="relative px-6 p-0 pt-4 overflow-hidden h-[160px]">
-          <div className="relative w-full h-full translate-y-4">
-            {voucher.cover_image_url ? (
+        {/* Logo section — aspect 1.5:1, transparent so the pattern shows through */}
+        <div
+          className="relative z-10 w-full flex items-center justify-center"
+          style={{
+            aspectRatio: "1.5 / 1",
+            padding: "19% 32%",
+          }}
+        >
+          {voucher.logo_url ? (
+            <div className="relative w-full h-full">
               <Image
-                src={voucher.cover_image_url}
-                alt={`${voucher.brand_name} cover`}
+                src={voucher.logo_url}
+                alt={voucher.brand_name}
                 fill
                 className="object-contain"
               />
-            ) : (
-              <div className="w-full h-full bg-white/10 rounded-lg flex items-center justify-center">
-                <span className="text-white/50 text-xs">No cover image</span>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <h2 className="text-3xl font-black text-white">{voucher.brand_name}</h2>
+          )}
+        </div>
+
+        {/* Dotted notch divider */}
+        <div className="relative z-20 h-2 mx-0">
+          <svg
+            className="absolute top-1/2 left-0 w-full h-0.5 -translate-y-1/2 opacity-60"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <line
+              x1="14"
+              y1="1"
+              x2="calc(100% - 14px)"
+              y2="1"
+              stroke="white"
+              strokeWidth="2"
+              strokeDasharray="10 6"
+            />
+          </svg>
+          <div className="absolute -left-2 top-1/2 w-4 h-4 -translate-y-1/2 rounded-full bg-white" />
+          <div className="absolute -right-2 top-1/2 w-4 h-4 -translate-y-1/2 rounded-full bg-white" />
+        </div>
+
+        {/* Feature image — aspect 1.7:1, full bleed */}
+        <div
+          className="relative z-10 w-full overflow-hidden"
+          style={{ aspectRatio: "1.7 / 1" }}
+        >
+          {voucher.cover_image_url ? (
+            <Image
+              src={voucher.cover_image_url}
+              alt={`${voucher.brand_name} cover`}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-white/10 flex items-center justify-center">
+              <span className="text-white/50 text-xs">No cover image</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -246,6 +263,18 @@ export function VoucherCard({ voucher, onEdit, onDelete }: VoucherCardProps) {
           )}
         </div>
       </div>
+    </div>
+
+      {bannerUrl && (
+        <div className="mt-4 w-full aspect-video rounded-lg overflow-hidden bg-black flex items-center justify-center p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bannerUrl}
+            alt={`${voucher.brand_name} banner`}
+            className="block max-w-full max-h-full"
+          />
+        </div>
+      )}
     </div>
   )
 }
