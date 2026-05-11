@@ -132,25 +132,22 @@ export function VoucherCard({ voucher, onEdit, onDelete }: VoucherCardProps) {
           </Button>
         </div>
 
-        {/* Logo section — aspect 1.5:1, transparent so the pattern shows through */}
+        {/* Logo section — aspect 1.5:1; image fills full container (logo already has its own padding baked in) */}
         <div
-          className="relative z-10 w-full flex items-center justify-center"
-          style={{
-            aspectRatio: "1.5 / 1",
-            padding: "19% 32%",
-          }}
+          className="relative z-10 w-full overflow-hidden"
+          style={{ aspectRatio: "1.5 / 1" }}
         >
           {voucher.logo_url ? (
-            <div className="relative w-full h-full">
-              <Image
-                src={voucher.logo_url}
-                alt={voucher.brand_name}
-                fill
-                className="object-contain"
-              />
-            </div>
+            <Image
+              src={voucher.logo_url}
+              alt={voucher.brand_name}
+              fill
+              className="object-contain"
+            />
           ) : (
-            <h2 className="text-3xl font-black text-white">{voucher.brand_name}</h2>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <h2 className="text-3xl font-black text-white">{voucher.brand_name}</h2>
+            </div>
           )}
         </div>
 

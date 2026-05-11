@@ -58,7 +58,7 @@ export function FlutterVoucherCardPreview({
             }}
           />
 
-          {/* Upper section (logo) — Figma spec: aspect 1.5:1 (width:height) */}
+          {/* Upper section (logo) — Figma spec: aspect 1.5:1; image fills full container (logo already has its own padding baked in) */}
           <div
             style={{
               position: "relative",
@@ -66,11 +66,7 @@ export function FlutterVoucherCardPreview({
               width: "100%",
               aspectRatio: "1.5 / 1",
               background: "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "19% 32%",
-              boxSizing: "border-box",
+              overflow: "hidden",
             }}
           >
             {logoUrl ? (
@@ -79,9 +75,10 @@ export function FlutterVoucherCardPreview({
                 src={logoUrl}
                 alt={brandName}
                 style={{
-                  maxWidth: "100%",
-                  maxHeight: "100%",
+                  width: "100%",
+                  height: "100%",
                   objectFit: "contain",
+                  display: "block",
                 }}
               />
             ) : null}
