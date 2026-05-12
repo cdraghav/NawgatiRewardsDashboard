@@ -1,21 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ChevronDown, ChevronUp, Plus, Search, X, Filter } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Search } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,27 +20,12 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
 import Autoplay from "embla-carousel-autoplay";
 import { AddVoucherDialog } from "./add-voucher-dialog";
 import { LoadingSpinner } from "@/components/loading";
 
 interface PendingVouchersCarouselProps {
   expanded?: boolean;
-}
-
-interface Filters {
-  search: string;
-  status: string;
-  type: string;
-  minAmount: number;
-  maxAmount: number;
-  hasDiscount: string;
 }
 
 async function fetchHubbleProducts() {
@@ -62,15 +39,7 @@ export function PendingVouchersCarousel({
   const [isOpen, setIsOpen] = useState(expanded);
   const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>({
-    search: "",
-    status: "all",
-    type: "all",
-    minAmount: 0,
-    maxAmount: 50000,
-    hasDiscount: "all",
-  });
+  const [search, setSearch] = useState("");
 
   const { data: pendingVouchers, isLoading } = useQuery({
     queryKey: ["pending-vouchers"],
@@ -79,75 +48,21 @@ export function PendingVouchersCarousel({
 
   const filteredVouchers = useMemo(() => {
     if (!pendingVouchers) return [];
-
-    return pendingVouchers.filter((voucher: any) => {
-      const searchLower = filters.search.toLowerCase();
-      const matchesSearch =
-        !filters.search ||
-        voucher.title.toLowerCase().includes(searchLower) ||
-        voucher.description?.toLowerCase().includes(searchLower);
-
-      const matchesStatus =
-        filters.status === "all" ||
-        voucher.status.toLowerCase() === filters.status.toLowerCase();
-
-      const matchesType =
-        filters.type === "all" ||
-        voucher.denominationType.toLowerCase() === filters.type.toLowerCase();
-
-      const voucherMinAmount = voucher.amountRestrictions?.minAmount || 0;
-      const voucherMaxAmount = voucher.amountRestrictions?.maxAmount || 0;
-      
-      const matchesAmount =
-        voucherMinAmount >= filters.minAmount &&
-        voucherMaxAmount <= filters.maxAmount;
-
-      const matchesDiscount =
-        filters.hasDiscount === "all" ||
-        (filters.hasDiscount === "yes" && voucher.discountPercentage > 0) ||
-        (filters.hasDiscount === "no" && !voucher.discountPercentage);
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesType &&
-        matchesAmount &&
-        matchesDiscount
-      );
-    });
-  }, [pendingVouchers, filters]);
+    const q = search.trim().toLowerCase();
+    if (!q) return pendingVouchers;
+    return pendingVouchers.filter((v: any) =>
+      v.title?.toLowerCase().includes(q) ||
+      v.brandDescription?.toLowerCase().includes(q)
+    );
+  }, [pendingVouchers, search]);
 
   const handleImportClick = (voucher: any) => {
     setSelectedVoucher(voucher);
     setDialogOpen(true);
   };
 
-  const resetFilters = () => {
-    setFilters({
-      search: "",
-      status: "all",
-      type: "all",
-      minAmount: 0,
-      maxAmount: 50000,
-      hasDiscount: "all",
-    });
-  };
-
-  const hasActiveFilters = useMemo(() => {
-    return (
-      filters.search !== "" ||
-      filters.status !== "all" ||
-      filters.type !== "all" ||
-      filters.minAmount !== 0 ||
-      filters.maxAmount !== 50000 ||
-      filters.hasDiscount !== "all"
-    );
-  }, [filters]);
-
   if (isLoading) {
-    return (
-      <LoadingSpinner text="Loading Hubble Brands"/>
-    );
+    return <LoadingSpinner text="Loading Hubble Brands" />;
   }
 
   if (!pendingVouchers?.length) {
@@ -166,304 +81,87 @@ export function PendingVouchersCarousel({
             <h2 className="text-2xl font-semibold">Pending Vouchers</h2>
             <p className="text-sm text-muted-foreground">
               {filteredVouchers.length} of {pendingVouchers.length} vouchers
-              {hasActiveFilters && " (filtered)"}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search vouchers..."
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, search: e.target.value }))
-                }
-                className="pl-9"
-              />
-            </div>
-
-            <Popover open={showFilters} onOpenChange={setShowFilters}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="relative">
-                  <Filter className="h-4 w-4" />
-                  {hasActiveFilters && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Filters</h3>
-                    {hasActiveFilters && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={resetFilters}
-                        className="h-auto p-0 text-xs"
-                      >
-                        Reset all
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select
-                      value={filters.status}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({ ...prev, status: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Denomination Type</Label>
-                    <Select
-                      value={filters.type}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({ ...prev, type: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="fixed">Fixed</SelectItem>
-                        <SelectItem value="range">Range</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Has Discount</Label>
-                    <Select
-                      value={filters.hasDiscount}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({ ...prev, hasDiscount: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="yes">With Discount</SelectItem>
-                        <SelectItem value="no">Without Discount</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>
-                      Amount Range: ₹{filters.minAmount} - ₹{filters.maxAmount}
-                    </Label>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">
-                          Min Amount
-                        </Label>
-                        <Slider
-                          value={[filters.minAmount]}
-                          onValueChange={([value]) =>
-                            setFilters((prev) => ({ ...prev, minAmount: value }))
-                          }
-                          min={0}
-                          max={50000}
-                          step={100}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">
-                          Max Amount
-                        </Label>
-                        <Slider
-                          value={[filters.maxAmount]}
-                          onValueChange={([value]) =>
-                            setFilters((prev) => ({ ...prev, maxAmount: value }))
-                          }
-                          min={0}
-                          max={50000}
-                          step={100}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+          <div className="relative flex-1 sm:w-64 sm:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search vouchers..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
           </div>
         </div>
 
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Active filters:</span>
-            {filters.search && (
-              <Badge 
-                variant="secondary" 
-                className="gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFilters((prev) => ({ ...prev, search: "" }));
-                }}
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          {!isOpen && (
+            <div className="w-full max-w-284 px-4 mx-auto overflow-hidden relative">
+              <Carousel
+                opts={{ align: "start", loop: true }}
+                plugins={[
+                  Autoplay({
+                    active: !dialogOpen,
+                    delay: 3000,
+                    stopOnInteraction: false,
+                    stopOnMouseEnter: true,
+                  }),
+                ]}
+                className="w-full px-10"
               >
-                Search: {filters.search}
-                <X className="h-3 w-3" />
-              </Badge>
-            )}
-            {filters.status !== "all" && (
-              <Badge 
-                variant="secondary" 
-                className="gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFilters((prev) => ({ ...prev, status: "all" }));
-                }}
-              >
-                Status: {filters.status}
-                <X className="h-3 w-3" />
-              </Badge>
-            )}
-            {filters.type !== "all" && (
-              <Badge 
-                variant="secondary" 
-                className="gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFilters((prev) => ({ ...prev, type: "all" }));
-                }}
-              >
-                Type: {filters.type}
-                <X className="h-3 w-3" />
-              </Badge>
-            )}
-            {filters.hasDiscount !== "all" && (
-              <Badge 
-                variant="secondary" 
-                className="gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFilters((prev) => ({ ...prev, hasDiscount: "all" }));
-                }}
-              >
-                Discount: {filters.hasDiscount === "yes" ? "Yes" : "No"}
-                <X className="h-3 w-3" />
-              </Badge>
-            )}
-            {(filters.minAmount !== 0 || filters.maxAmount !== 50000) && (
-              <Badge 
-                variant="secondary" 
-                className="gap-1 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFilters((prev) => ({
-                    ...prev,
-                    minAmount: 0,
-                    maxAmount: 50000,
-                  }));
-                }}
-              >
-                Range: ₹{filters.minAmount} - ₹{filters.maxAmount}
-                <X className="h-3 w-3" />
-              </Badge>
-            )}
-          </div>
-        )}
-
-        {filteredVouchers.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed bg-muted/30 p-12 text-center">
-            <p className="text-muted-foreground">
-              No vouchers match your filters. Try adjusting your search criteria.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetFilters}
-              className="mt-4"
-            >
-              Clear Filters
-            </Button>
-          </div>
-        ) : (
-          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            {!isOpen && (
-              <div className="w-full max-w-284 px-4 mx-auto overflow-hidden  relative">
-                <Carousel
-                  opts={{ align: "start", loop: true }}
-                  plugins={[
-                    Autoplay({
-                      active: !dialogOpen,
-                      delay: 3000,
-                      stopOnInteraction: false,
-                      stopOnMouseEnter: true,
-                    }),
-                  ]}
-                  className="w-full px-10"
-                >
-                  <CarouselContent className="scroll-px-10 ">
-                    {filteredVouchers.map((voucher: any) => (
-                      <CarouselItem
-                        key={voucher.id}
-                        className="pl-4 md:basis-1/2 lg:basis-1/3"
-                      >
-                        <VoucherCard
-                          voucher={voucher}
-                          onImport={handleImportClick}
-                        />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full" />
-                  <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full" />
-                </Carousel>
-              </div>
-            )}
-
-            <CollapsibleContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredVouchers.map((voucher: any) => (
-                  <VoucherCard
-                    key={voucher.id}
-                    voucher={voucher}
-                    onImport={handleImportClick}
-                  />
-                ))}
-              </div>
-            </CollapsibleContent>
-
-            <div className="flex justify-center mt-4">
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  {isOpen ? (
-                    <>
-                      Show Less <ChevronUp className="h-4 w-4" />
-                    </>
-                  ) : (
-                    <>
-                      Show All ({filteredVouchers.length}){" "}
-                      <ChevronDown className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+                <CarouselContent className="scroll-px-10">
+                  {filteredVouchers.map((voucher: any) => (
+                    <CarouselItem
+                      key={voucher.id}
+                      className="pl-4 md:basis-1/2 lg:basis-1/3"
+                    >
+                      <VoucherCard
+                        voucher={voucher}
+                        onImport={handleImportClick}
+                      />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="absolute left-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full" />
+                <CarouselNext className="absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full" />
+              </Carousel>
             </div>
-          </Collapsible>
-        )}
+          )}
+
+          <CollapsibleContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredVouchers.map((voucher: any) => (
+                <VoucherCard
+                  key={voucher.id}
+                  voucher={voucher}
+                  onImport={handleImportClick}
+                />
+              ))}
+            </div>
+          </CollapsibleContent>
+
+          <div className="flex justify-center mt-4">
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                {isOpen ? (
+                  <>
+                    Show Less <ChevronUp className="h-4 w-4" />
+                  </>
+                ) : (
+                  <>
+                    Show All ({filteredVouchers.length}){" "}
+                    <ChevronDown className="h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+        </Collapsible>
       </div>
 
       {selectedVoucher && (
@@ -555,7 +253,7 @@ function VoucherCard({
               <div className="flex flex-wrap gap-1">
                 {voucher.category.slice(0, 2).map((cat: string, idx: number) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
-                    {cat.replace(/_/g, ' ')}
+                    {cat.replace(/_/g, " ")}
                   </Badge>
                 ))}
                 {voucher.category.length > 2 && (
@@ -576,4 +274,3 @@ function VoucherCard({
     </Card>
   );
 }
-
