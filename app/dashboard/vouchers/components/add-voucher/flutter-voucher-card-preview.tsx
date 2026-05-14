@@ -335,16 +335,19 @@ export function FlutterVoucherCardPreview({
   );
 }
 
-function DottedDivider({ bgColor }: { bgColor: string }) {
+function DottedDivider({ bgColor: _bgColor }: { bgColor: string }) {
   const NOTCH = 8;
   const DASH_HEIGHT = 2;
   return (
+    // Strip is intentionally transparent so the parent's pattern overlay
+    // shows through this 8px region — otherwise you get a band of solid
+    // brand colour right below the dashed line.
     <div
       style={{
         position: "relative",
         width: "100%",
         height: NOTCH,
-        background: bgColor,
+        background: "transparent",
       }}
     >
       {/* Dashed white line, centered vertically */}
