@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  type ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Plus, Pencil, Trash2, Search, FolderTree } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,67 +20,76 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DataTable } from "@/components/ui/data-table";
 import { DashboardHeader } from "../components/header";
-import { LoadingSpinner } from "@/components/loading";
 import { toast } from "sonner";
 
-async function fetchCategories() {
+interface Category {
+  id: number;
+  name: string;
+  image_url: string;
+  created_at: string;
+}
+
+async function fetchCategories(): Promise<Category[]> {
   const response = await api.get("/api/voucher/categories");
   return response.data.data;
 }
 
 export default function CategoriesPage() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", image_url: "" });
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [editingCategory, setEditingCategory] = React.useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = React.useState<Category | null>(null);
+  const [formData, setFormData] = React.useState({ name: "", image_url: "" });
+  const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
   const queryClient = useQueryClient();
 
-  const { data: categories, isLoading } = useQuery({
+  const { data: categories = [], isLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
   });
 
+  const resetForm = () => setFormData({ name: "", image_url: "" });
+
   const createMutation = useMutation({
-    mutationFn: (data: any) => api.post("/api/voucher/categories", data),
+    mutationFn: (data: { name: string; image_url: string }) =>
+      api.post("/api/voucher/categories", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       setIsCreateOpen(false);
-      setFormData({ name: "", image_url: "" });
-      toast.success("Category created", {
-        description: "New category has been added successfully.",
-      });
+      resetForm();
+      toast.success("Category created");
     },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || "Failed to create category";
-      toast.error(errorMessage);
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      toast.error(error.response?.data?.message || "Failed to create category");
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) =>
+    mutationFn: (data: { id: number; name: string; image_url: string }) =>
       api.put(`/api/voucher/categories/${data.id}`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       setEditingCategory(null);
-      setFormData({ name: "", image_url: "" });
-      toast.success("Category updated", {
-        description: `"${variables.name}" has been updated successfully.`,
-      });
+      resetForm();
+      toast.success(`"${variables.name}" updated`);
     },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || "Failed to update category";
-          toast.error(errorMessage);
-
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      toast.error(error.response?.data?.message || "Failed to update category");
     },
   });
 
@@ -88,40 +97,121 @@ export default function CategoriesPage() {
     mutationFn: (id: number) => api.delete(`/api/voucher/categories/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Category deleted", {
-        description: "Category and all associated links have been deleted.",
-      });
+      setDeletingCategory(null);
+      toast.success("Category deleted");
     },
-    onError: (error: any) => {
-      const errorData = error.response?.data;
-      
-      if (errorData?.affectedVouchers && errorData.affectedVouchers.length > 0) {
-        toast.error(`${errorData.affectedVouchers.length} voucher(s) linked only to this category. Please delete or reassign them first.`);
+    onError: (error: {
+      response?: { data?: { message?: string; affectedVouchers?: unknown[] } };
+    }) => {
+      const data = error.response?.data;
+      if (data?.affectedVouchers && data.affectedVouchers.length > 0) {
+        toast.error(
+          `${data.affectedVouchers.length} voucher(s) linked only to this category. Delete or reassign them first.`,
+        );
       } else {
-        const errorMessage = errorData?.message || "Failed to delete category";
-        toast.error(errorMessage);
-
+        toast.error(data?.message || "Failed to delete category");
       }
+    },
+  });
+
+  const handleEdit = React.useCallback((category: Category) => {
+    setEditingCategory(category);
+    setFormData({ name: category.name, image_url: category.image_url });
+  }, []);
+
+  const columns = React.useMemo<ColumnDef<Category>[]>(
+    () => [
+      {
+        id: "image",
+        header: "",
+        size: 56,
+        cell: ({ row }) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={row.original.image_url}
+            alt={row.original.name}
+            className="size-7 rounded-md border border-border bg-card object-cover"
+          />
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => (
+          <span className="font-medium capitalize text-foreground">
+            {row.original.name}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "created_at",
+        header: "Created",
+        size: 160,
+        cell: ({ row }) => (
+          <span className="text-muted-foreground tabular-nums">
+            {new Date(row.original.created_at).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        size: 88,
+        meta: { align: "right" },
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(row.original);
+              }}
+            >
+              <Pencil className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeletingCategory(row.original);
+              }}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [handleEdit],
+  );
+
+  const table = useReactTable({
+    data: categories,
+    columns,
+    state: { globalFilter: deferredSearch },
+    onGlobalFilterChange: setSearch,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    globalFilterFn: (row, _id, value: string) => {
+      const q = value.trim().toLowerCase();
+      if (!q) return true;
+      return row.original.name.toLowerCase().includes(q);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      toast.error("Category name required", {
-        description: "Please enter a category name.",
-      });
-      return;
-    }
-
-    if (!formData.image_url.trim()) {
-      toast.error("Image URL required", {
-        description: "Please enter an image URL.",
-      });
-      return;
-    }
-
+    if (!formData.name.trim()) return toast.error("Name required");
+    if (!formData.image_url.trim()) return toast.error("Image URL required");
     if (editingCategory) {
       updateMutation.mutate({ ...formData, id: editingCategory.id });
     } else {
@@ -129,175 +219,183 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleEdit = (category: any) => {
-    setEditingCategory(category);
-    setFormData({ name: category.name, image_url: category.image_url });
-  };
-
-  const handleDelete = (category: any) => {
-    toast.info("Deleting category", {
-      description: `Removing "${category.name}"...`,
-    });
-    deleteMutation.mutate(category.id);
-  };
+  const dialogOpen = isCreateOpen || !!editingCategory;
+  const submitting = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <>
-      <DashboardHeader />
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-            <p className="text-muted-foreground">
-              Manage voucher categories for organizing brands
+    <div className="flex min-h-screen flex-col bg-background">
+      <DashboardHeader
+        breadcrumbs={[
+          { label: "Workspace", href: "/dashboard" },
+          { label: "Categories" },
+        ]}
+      />
+
+      <main className="mx-auto flex w-full max-w-[1440px] min-w-0 flex-1 flex-col gap-3 px-4 py-4 md:px-9 lg:px-16">
+        <div className="flex items-end justify-between gap-3">
+          <div className="space-y-0.5">
+            <h1 className="text-[20px] font-semibold tracking-tight text-foreground">
+              Categories
+            </h1>
+            <p className="text-[12.5px] text-muted-foreground">
+              Organize voucher brands by category.
             </p>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Category
+          <Button
+            size="sm"
+            onClick={() => setIsCreateOpen(true)}
+            className="h-7 gap-1.5 px-2.5 text-[12.5px]"
+          >
+            <Plus className="size-3.5" />
+            New category
           </Button>
         </div>
 
-        {isLoading ? (
-          <LoadingSpinner text="Loading categories" />
-        ) : !categories?.length ? (
-          <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min flex items-center justify-center text-muted-foreground">
-            No categories yet. Create one to get started.
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-3 py-2">
+            <div className="relative max-w-sm flex-1">
+              <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Filter categories…"
+                className="h-7 rounded-md border-input pl-7 text-[12.5px] shadow-none"
+              />
+            </div>
+            <span className="ml-auto text-[11.5px] text-muted-foreground">
+              <span className="font-medium text-foreground tabular-nums">
+                {table.getFilteredRowModel().rows.length}
+              </span>
+              {" of "}
+              <span className="tabular-nums">{categories.length}</span>
+            </span>
           </div>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>All Categories</CardTitle>
-              <CardDescription>
-                {categories.length} categories in total
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categories.map((category: any) => (
-                    <TableRow key={category.id}>
-                      <TableCell>
-                        <img
-                          src={category.image_url}
-                          alt={category.name}
-                          className="h-10 w-10 rounded object-cover"
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium capitalize">
-                        {category.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(category.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(category)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(category)}
-                            disabled={deleteMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
 
-        <Dialog
-          open={isCreateOpen || !!editingCategory}
-          onOpenChange={(open) => {
-            if (!open) {
-              setIsCreateOpen(false);
-              setEditingCategory(null);
-              setFormData({ name: "", image_url: "" });
-            }
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingCategory ? "Edit Category" : "Create Category"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingCategory
-                  ? "Update category information"
-                  : "Add a new category for vouchers"}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Category Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g., Food & Dining"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  placeholder="https://example.com/image.png"
-                  required
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreateOpen(false);
-                    setEditingCategory(null);
-                    setFormData({ name: "", image_url: "" });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                >
-                  {createMutation.isPending || updateMutation.isPending
-                    ? "Processing..."
-                    : editingCategory
-                    ? "Update"
-                    : "Create"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </>
+          {isLoading ? (
+            <div className="divide-y divide-border">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                  <Skeleton className="size-7 rounded-md" />
+                  <Skeleton className="h-3.5 w-32" />
+                  <Skeleton className="ml-auto h-3.5 w-20" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <DataTable
+              table={table}
+              empty={
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <FolderTree className="size-4" />
+                  </div>
+                  <div className="text-[13px] font-medium text-foreground">
+                    {search ? "No categories match" : "No categories yet"}
+                  </div>
+                  <div className="text-[12px] text-muted-foreground">
+                    {search ? "Try a different keyword." : "Create one to get started."}
+                  </div>
+                </div>
+              }
+            />
+          )}
+        </div>
+      </main>
+
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateOpen(false);
+            setEditingCategory(null);
+            resetForm();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="text-[15px]">
+              {editingCategory ? "Edit category" : "New category"}
+            </DialogTitle>
+            <DialogDescription className="text-[12.5px]">
+              {editingCategory
+                ? "Update category details."
+                : "Create a category to group vouchers."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="text-[12px]">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Food & Dining"
+                className="h-8 text-[13px]"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="image_url" className="text-[12px]">Image URL</Label>
+              <Input
+                id="image_url"
+                value={formData.image_url}
+                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                placeholder="https://example.com/image.png"
+                className="h-8 text-[13px]"
+                required
+              />
+            </div>
+            <DialogFooter className="gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-[12.5px]"
+                onClick={() => {
+                  setIsCreateOpen(false);
+                  setEditingCategory(null);
+                  resetForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-7 text-[12.5px]"
+                disabled={submitting}
+              >
+                {submitting ? "Saving…" : editingCategory ? "Update" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deletingCategory}
+        onOpenChange={(open) => !open && setDeletingCategory(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[15px]">Delete category?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12.5px]">
+              Remove “{deletingCategory?.name}”. Vouchers linked only to this category will block deletion.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-[12.5px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="h-7 bg-destructive text-[12.5px] text-white hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={() => deletingCategory && deleteMutation.mutate(deletingCategory.id)}
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

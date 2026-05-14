@@ -33,7 +33,10 @@ export function FlutterVoucherCardPreview({
   const sortedTypes = [...redemptionTypes].sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className={inter.className} style={{ width: 290, margin: "0 auto", paddingTop: 16 }}>
+    <div
+      className={inter.className}
+      style={{ width: "100%", maxWidth: 290, margin: "0 auto", paddingTop: 16 }}
+    >
       <div style={{ position: "relative" }}>
         {/* Voucher body — colored frame, edge-to-edge of card */}
         <div

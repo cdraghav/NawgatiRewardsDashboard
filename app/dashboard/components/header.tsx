@@ -1,47 +1,39 @@
-import { Separator } from "@/components/ui/separator";
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import React from "react";
+import { Separator } from "@/components/ui/separator";
+import { ChevronRight } from "lucide-react";
 
 interface DashboardHeaderProps {
-  breadcrumbs?: {
-    label: string;
-    href?: string;
-  }[];
+  breadcrumbs?: { label: string; href?: string }[];
+  actions?: React.ReactNode;
 }
 
-export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
+export function DashboardHeader({ breadcrumbs, actions }: DashboardHeaderProps) {
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b">
-      <div className="flex items-center gap-2 px-3">
-        <SidebarTrigger />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbs?.map((crumb, index) => (
-              <React.Fragment key={index}>
-                {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
-                <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
-                  {crumb.href ? (
-                    <BreadcrumbLink href={crumb.href}>
-                      {crumb.label}
-                    </BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
-              </React.Fragment>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
+    <header className="sticky top-0 z-50 flex h-10 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md">
+      <SidebarTrigger className="size-6" />
+      <Separator orientation="vertical" className="mx-1 h-3.5" />
+      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-[12.5px] text-muted-foreground">
+        {breadcrumbs?.map((crumb, idx) => (
+          <React.Fragment key={`${crumb.label}-${idx}`}>
+            {idx > 0 && <ChevronRight className="size-3 opacity-50" />}
+            {crumb.href ? (
+              <Link
+                href={crumb.href}
+                className="rounded px-1 transition-colors hover:text-foreground"
+              >
+                {crumb.label}
+              </Link>
+            ) : (
+              <span className="px-1 font-medium text-foreground">{crumb.label}</span>
+            )}
+          </React.Fragment>
+        ))}
+      </nav>
+      <div className="ml-auto flex items-center gap-1.5">{actions}</div>
     </header>
   );
 }
