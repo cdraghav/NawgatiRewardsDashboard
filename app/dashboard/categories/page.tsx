@@ -138,7 +138,7 @@ export default function CategoriesPage() {
         accessorKey: "name",
         header: "Name",
         cell: ({ row }) => (
-          <span className="font-medium capitalize text-foreground">
+          <span className="font-medium text-foreground">
             {row.original.name}
           </span>
         ),

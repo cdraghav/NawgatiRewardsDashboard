@@ -88,7 +88,7 @@ export function CategoryMultiselect({
                     key={option.id}
                     value={option.name}
                     onSelect={() => toggle(option.id)}
-                    className="capitalize"
+                    className=""
                   >
                     <div
                       className={cn(

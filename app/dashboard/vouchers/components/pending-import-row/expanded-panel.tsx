@@ -22,7 +22,7 @@ interface ExpandedPanelProps {
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
-      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      <span className="text-[11.5px] font-medium text-muted-foreground">
         {label}
       </span>
       <span className="truncate text-right text-[12.5px] font-medium text-foreground">
@@ -41,7 +41,7 @@ function Section({
 }) {
   return (
     <AccordionItem value={title} className="border-b border-border last:border-b-0">
-      <AccordionTrigger className="py-2 text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground hover:no-underline">
+      <AccordionTrigger className="py-2 text-[12.5px] font-medium text-foreground hover:no-underline">
         {title}
       </AccordionTrigger>
       <AccordionContent className="pb-3">{children}</AccordionContent>
@@ -131,7 +131,7 @@ export function ExpandedPanel({
             </div>
             {Array.isArray(denominations) && denominations.length > 0 && (
               <div className="mt-2">
-                <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                <div className="mb-1 text-[11.5px] font-medium text-muted-foreground">
                   Denominations
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -168,29 +168,20 @@ export function ExpandedPanel({
             </div>
             {(onlineUsage.length > 0 || offlineUsage.length > 0) && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {onlineUsage.length > 0 && (
-                  <div>
-                    <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Online steps
-                    </div>
-                    <ol className="list-decimal space-y-1 pl-4 text-[12px] text-foreground">
-                      {onlineUsage.map((s, i) => (
-                        <li key={i}>{s}</li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-                {offlineUsage.length > 0 && (
-                  <div>
-                    <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Offline steps
-                    </div>
-                    <ol className="list-decimal space-y-1 pl-4 text-[12px] text-foreground">
-                      {offlineUsage.map((s, i) => (
-                        <li key={i}>{s}</li>
-                      ))}
-                    </ol>
-                  </div>
+                {Object.entries(usage as Record<string, string[]>).map(
+                  ([key, steps]) =>
+                    Array.isArray(steps) && steps.length > 0 ? (
+                      <div key={key}>
+                        <div className="mb-1 text-[11.5px] font-medium text-muted-foreground">
+                          {key}
+                        </div>
+                        <ol className="list-decimal space-y-1 pl-4 text-[12px] text-foreground">
+                          {steps.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    ) : null,
                 )}
               </div>
             )}
@@ -201,7 +192,7 @@ export function ExpandedPanel({
             <Section title="Tags & Hubble categories">
               {Array.isArray(voucher.category) && voucher.category.length > 0 && (
                 <div className="mb-2">
-                  <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <div className="mb-1 text-[11.5px] font-medium text-muted-foreground">
                     Hubble categories
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -209,9 +200,9 @@ export function ExpandedPanel({
                       <Badge
                         key={c}
                         variant="secondary"
-                        className="h-5 rounded-md px-1.5 text-[11px] font-normal capitalize"
+                        className="h-5 rounded-md px-1.5 text-[11px] font-normal"
                       >
-                        {c.replace(/_/g, " ")}
+                        {c}
                       </Badge>
                     ))}
                   </div>
@@ -219,7 +210,7 @@ export function ExpandedPanel({
               )}
               {Array.isArray(voucher.tags) && voucher.tags.length > 0 && (
                 <div>
-                  <div className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <div className="mb-1 text-[11.5px] font-medium text-muted-foreground">
                     Tags
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -264,7 +255,7 @@ export function ExpandedPanel({
 
       {/* Live preview using the production voucher UI */}
       <div className="min-w-0">
-        <div className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+        <div className="mb-2 text-[11.5px] font-medium text-muted-foreground">
           Preview
         </div>
         <div className="rounded-md border border-border bg-card p-3">
@@ -285,9 +276,9 @@ export function ExpandedPanel({
               <Badge
                 key={n}
                 variant="outline"
-                className="h-5 rounded-md px-1.5 text-[11px] font-normal capitalize"
+                className="h-5 rounded-md px-1.5 text-[11px] font-normal"
               >
-                {n.replace(/_/g, " ")}
+                {n}
               </Badge>
             ))}
           </div>

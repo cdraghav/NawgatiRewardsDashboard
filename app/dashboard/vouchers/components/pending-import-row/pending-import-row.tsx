@@ -246,7 +246,7 @@ export const PendingImportRow = React.memo(function PendingImportRow({
                   className="w-56 space-y-2 p-2"
                   onClick={stop}
                 >
-                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <div className="text-[11.5px] font-medium text-muted-foreground">
                     Brand color
                   </div>
                   <div className="flex items-center gap-2">
@@ -272,12 +272,19 @@ export const PendingImportRow = React.memo(function PendingImportRow({
               onClick={stop}
             >
               <Input
-                inputMode="numeric"
-                pattern="[0-9]*"
+                inputMode="decimal"
+                pattern="[0-9]*\.?[0-9]*"
                 value={discount}
                 onChange={(e) => {
-                  const v = e.target.value.replace(/[^0-9]/g, "");
-                  setDiscount(v);
+                  // Allow digits and a single decimal point.
+                  const raw = e.target.value.replace(/[^0-9.]/g, "");
+                  const firstDot = raw.indexOf(".");
+                  const normalized =
+                    firstDot === -1
+                      ? raw
+                      : raw.slice(0, firstDot + 1) +
+                        raw.slice(firstDot + 1).replace(/\./g, "");
+                  setDiscount(normalized);
                 }}
                 placeholder="%"
                 className="h-7 rounded-md border-input pr-5 text-right text-[12.5px] tabular-nums shadow-none"

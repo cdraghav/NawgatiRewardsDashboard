@@ -111,6 +111,7 @@ async function syncHubbleData(payload?: {
   apply?: boolean;
   ids?: number[];
   fields?: string[];
+  overrides?: Record<string, unknown>;
 }) {
   const res = await api.post<{ success: boolean; data: SyncResponse }>(
     "/api/voucher/hubble/sync-discounts",
@@ -161,10 +162,19 @@ export function UploadedVouchersGrid() {
     onError: () => toast.error("Sync failed"),
   });
 
-  type ApplyArgs = { ids?: number[]; fields?: string[] };
+  type ApplyArgs = {
+    ids?: number[];
+    fields?: string[];
+    overrides?: Record<string, unknown>;
+  };
   const applyMutation = useMutation({
     mutationFn: (args: ApplyArgs) =>
-      syncHubbleData({ apply: true, ids: args.ids, fields: args.fields }),
+      syncHubbleData({
+        apply: true,
+        ids: args.ids,
+        fields: args.fields,
+        overrides: args.overrides,
+      }),
     // Optimistically clear the targeted field/row from the diff state so the
     // UI updates instantly. We don't refresh from `data.changed` afterward
     // because some shapes (e.g. usage_instructions where Hubble uses
@@ -261,7 +271,7 @@ export function UploadedVouchersGrid() {
         header: "Category",
         size: 200,
         cell: ({ row }) => (
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[11.5px] capitalize text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-1.5 py-0.5 text-[11.5px] text-muted-foreground">
             {row.original.categoryName}
           </span>
         ),
@@ -371,7 +381,7 @@ export function UploadedVouchersGrid() {
                   <span
                     key={t}
                     className={cn(
-                      "rounded border px-1.5 py-0.5 text-[10.5px] capitalize",
+                      "rounded border px-1.5 py-0.5 text-[10.5px]",
                       variant === "ours" &&
                         "border-border bg-muted/40 text-muted-foreground line-through decoration-muted-foreground/50",
                       variant === "hubble" &&
@@ -684,9 +694,15 @@ function EmptyState({ search }: { search: string }) {
 }
 
 type ApplyMutationLike = {
-  mutate: (args: { ids?: number[]; fields?: string[] }) => void;
+  mutate: (args: {
+    ids?: number[];
+    fields?: string[];
+    overrides?: Record<string, unknown>;
+  }) => void;
   isPending: boolean;
-  variables: { ids?: number[]; fields?: string[] } | undefined;
+  variables:
+    | { ids?: number[]; fields?: string[]; overrides?: Record<string, unknown> }
+    | undefined;
 };
 
 interface PreviewGridProps {
@@ -805,14 +821,6 @@ function PreviewGrid({
 
 // ----- Detail panel + diff rendering ---------------------------------------
 
-function formatValue(v: unknown): string {
-  if (v === null || v === undefined) return "—";
-  if (Array.isArray(v)) return v.length === 0 ? "—" : v.map(String).join(", ");
-  if (typeof v === "object") return JSON.stringify(v, null, 2);
-  if (typeof v === "string" && v.trim() === "") return "—";
-  return String(v);
-}
-
 interface VoucherDetailPanelProps {
   voucher: FlatRow;
   change: VoucherChange | null;
@@ -826,6 +834,7 @@ function VoucherDetailPanel({ voucher, change, applyMutation }: VoucherDetailPan
     pendingArgs?.ids?.length === 1 &&
     pendingArgs.ids[0] === voucher.id &&
     !pendingArgs.fields;
+
 
   return (
     <div
@@ -899,7 +908,7 @@ function VoucherDetailPanel({ voucher, change, applyMutation }: VoucherDetailPan
                   >
                     <td className="px-3 py-2 align-top">
                       <div className="text-[12.5px] font-medium text-foreground">{d.label}</div>
-                      <div className="text-[10.5px] font-mono text-muted-foreground">{d.key}</div>
+                      <div className="font-mono text-[10.5px] text-muted-foreground">{d.key}</div>
                     </td>
                     <td className="max-w-[320px] px-3 py-2 align-top">
                       <DiffValue value={d.ours} tone="ours" fieldKey={d.key} />
@@ -961,9 +970,7 @@ function DiffValue({ value, tone, fieldKey }: DiffValueProps) {
     return <span className={wrapper}>—</span>;
   }
 
-  // Special-case usage_instructions: render as keyed sections so the
-  // retailModeName labels ("Website", "App", "ONLINE", …) stay visible
-  // alongside the steps under each.
+  // usage_instructions: render keyed sections, keys verbatim (OFFLINE / Offline / Website / App).
   if (
     fieldKey === "usage_instructions" &&
     typeof value === "object" &&
@@ -977,9 +984,7 @@ function DiffValue({ value, tone, fieldKey }: DiffValueProps) {
           const items = Array.isArray(list) ? list.map(String) : [String(list)];
           return (
             <div key={k}>
-              <div className="text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
-                {k}
-              </div>
+              <div className="font-mono text-[11px] text-muted-foreground">{k}</div>
               {items.length === 0 ? (
                 <div className={cn(wrapper, "mt-0.5")}>—</div>
               ) : (
@@ -1020,3 +1025,4 @@ function DiffValue({ value, tone, fieldKey }: DiffValueProps) {
   }
   return <span className={wrapper}>{String(value)}</span>;
 }
+
